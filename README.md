@@ -19,10 +19,10 @@ cd ai-review-backend
 python3 -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
+cp .env/example .env/local
 ```
 
-Edit `.env` if needed — the defaults match the docker-compose Postgres below.
+Edit `.env/local` if needed — the defaults match the docker-compose Postgres below.
 
 ## 2. Start Postgres
 
@@ -31,10 +31,10 @@ docker compose up -d
 ```
 
 This starts Postgres 16 on `localhost:5432` with a database called
-`ai_review`, user/password `postgres`/`postgres` (matches `.env.example`).
+`ai_review`, user/password `postgres`/`postgres` (matches `.env/example`).
 
 Don't have Docker? Install Postgres locally instead and create a
-database called `ai_review`, then update `DATABASE_URL` in `.env`.
+database called `ai_review`, then update `DATABASE_URL` in `.env/local`.
 
 ## 3. Start the backend
 
@@ -42,7 +42,7 @@ database called `ai_review`, then update `DATABASE_URL` in `.env`.
 uvicorn app.main:app --reload --port 8000
 ```
 
-On first run (with `ENVIRONMENT=development` in `.env`), it auto-creates
+On first run (with `ENVIRONMENT=development` in `.env/local`), it auto-creates
 all 4 tables (`jobs`, `execution_results`, `ai_reviews`, `issues`) via
 SQLAlchemy — no migration step needed to get started.
 
@@ -86,7 +86,7 @@ ai_review_completed → github_posted`.
 
 ## 5. Connecting the real pieces
 
-- **Sandbox teammate**: point `SANDBOX_BASE_URL` in `.env` at their
+- **Sandbox teammate**: point `SANDBOX_BASE_URL` in `.env/local` at their
   service. It exposes `POST /run` with `{code, packages}` — see
   `SandboxCodeRequest` in `app/schemas/review.py`. The backend fetches
   the PR diff from GitHub, extracts Python source, and translates the
@@ -150,7 +150,9 @@ tools/
   send_test_webhook.py   # Sends a correctly HMAC-signed test webhook
 docker-compose.yml        # Local Postgres
 requirements.txt
-.env.example
+.env/
+  example                 # Template — copy to local and edit
+  local                   # Your local config (gitignored)
 ```
 
 ## Design decisions worth knowing about
