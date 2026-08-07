@@ -6,6 +6,7 @@ transition. Runs as a FastAPI background task so the webhook endpoint
 can return its 2xx to GitHub immediately (per the schema doc: "return
 the 2xx to GitHub before kicking off the sandbox").
 """
+import re
 import uuid
 
 from sqlalchemy import select
@@ -44,7 +45,7 @@ async def create_job(db: AsyncSession, repo: str, pr_number: int, commit_sha: st
     return job
 
 
-async def run_pipeline(db_session_factory, job_id: uuid.UUID, clone_url: str, language: str = "python") -> None:
+async def run_pipeline(db_session_factory, job_id: uuid.UUID, language: str = "python") -> None:
     """
     Stages 2-7. Takes a session *factory* (not a session) because this
     runs as a background task outside the original request's session
@@ -59,6 +60,19 @@ async def run_pipeline(db_session_factory, job_id: uuid.UUID, clone_url: str, la
 
         await manager.broadcast(events.job_created(job.job_id, job.created_at.isoformat()))
 
+        # --- Fetch PR diff from GitHub ---
+        # The sandbox is a code-runner, not a CI-runner — it can't clone
+        # repos. So we fetch the diff ourselves and pass raw code to it.
+        try:
+            diff_text = await github_service.fetch_pr_diff(job.repo, job.pr_number)
+        except Exception as e:
+            logger.error(f"Failed to fetch PR diff for job {job.job_id}: {e}")
+            diff_text = ""
+
+        # Extract changed filenames from the unified diff for metadata.
+        files_changed = _extract_filenames(diff_text)
+        code_to_run = _extract_code_from_diff(diff_text)
+
         # --- Stage 2/3: Sandbox ---
         job.status = JobStatus.running_sandbox
         await db.commit()
@@ -66,10 +80,9 @@ async def run_pipeline(db_session_factory, job_id: uuid.UUID, clone_url: str, la
 
         result = await sandbox_service.run_sandbox(
             job_id=job.job_id,
-            repo_url=clone_url,
-            commit_sha=job.commit_sha,
-            language=language,
-            test_command="pytest -q",
+            code=code_to_run,
+            diff=diff_text,
+            files_changed=files_changed,
         )
 
         db.add(
@@ -175,3 +188,48 @@ async def _post_canned_failure_comment(job: Job, reason: str) -> None:
         await manager.broadcast(events.github_posted(job.job_id))
     except Exception as e:
         logger.error(f"Failed to post canned failure comment for job {job.job_id}: {e}")
+
+
+def _extract_filenames(diff_text: str) -> list[str]:
+    """Pull changed file paths from a unified diff header."""
+    return re.findall(r"^diff --git a/(.+?) b/", diff_text, re.MULTILINE)
+
+
+def _extract_code_from_diff(diff_text: str) -> str:
+    """
+    Reconstruct post-patch Python source from a unified diff.
+
+    The sandbox executes raw code, not diff text. We walk each hunk and
+    keep context lines (leading space) and additions (+), skipping
+    deletions (-). Only .py files are included.
+    """
+    if not diff_text.strip():
+        return "pass  # no diff available"
+
+    file_blocks: list[str] = []
+    current_file: str | None = None
+    current_lines: list[str] = []
+
+    def flush() -> None:
+        if current_file and current_file.endswith(".py") and current_lines:
+            file_blocks.append("\n".join(current_lines))
+
+    for line in diff_text.splitlines():
+        if line.startswith("diff --git "):
+            flush()
+            match = re.match(r"diff --git a/(.+?) b/(.+)", line)
+            current_file = match.group(2) if match else None
+            current_lines = []
+        elif line.startswith(("--- ", "+++ ", "index ", "new file mode", "deleted file mode")):
+            continue
+        elif line.startswith("@@"):
+            continue
+        elif line.startswith("+") and not line.startswith("+++"):
+            current_lines.append(line[1:])
+        elif line.startswith(" "):
+            current_lines.append(line[1:])
+
+    flush()
+    if file_blocks:
+        return "\n\n".join(file_blocks)
+    return "pass  # no python changes in diff"

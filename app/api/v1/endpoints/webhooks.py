@@ -69,7 +69,6 @@ async def github_webhook(
         review_service.run_pipeline,
         AsyncSessionLocal,
         job.job_id,
-        event.repository.clone_url,
     )
 
     return {"status": "accepted", "job_id": str(job.job_id)}

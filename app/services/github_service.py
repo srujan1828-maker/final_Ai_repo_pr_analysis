@@ -75,3 +75,39 @@ async def post_review_comments(repo: str, pr_number: int, review: AIReviewResult
             resp.raise_for_status()
 
     logger.info(f"Posted {1 + len(review.issues)} comment(s) to {repo}#{pr_number}")
+
+
+async def fetch_pr_diff(repo: str, pr_number: int) -> str:
+    """
+    Fetch the unified diff for a PR from GitHub.
+
+    The sandbox service cannot clone repos — it takes raw code. So the
+    backend fetches the diff itself and forwards it to the sandbox and
+    AI engine. Uses the `application/vnd.github.v3.diff` media type to
+    get the raw unified diff directly, no pagination required.
+    """
+    if not settings.github_token:
+        logger.warning("GITHUB_TOKEN not set — returning placeholder diff (dev mode)")
+        return (
+            "diff --git a/src/example.py b/src/example.py\n"
+            "--- a/src/example.py\n"
+            "+++ b/src/example.py\n"
+            "@@ -1,3 +1,4 @@\n"
+            " # placeholder diff — set GITHUB_TOKEN for real data\n"
+            "+print('hello')\n"
+        )
+
+    url = f"{GITHUB_API}/repos/{repo}/pulls/{pr_number}"
+    headers = {
+        "Authorization": f"Bearer {settings.github_token}",
+        "Accept": "application/vnd.github.v3.diff",
+    }
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(url, headers=headers)
+        resp.raise_for_status()
+        diff_text = resp.text
+
+    logger.info(f"Fetched diff for {repo}#{pr_number} ({len(diff_text)} bytes)")
+    return diff_text
+

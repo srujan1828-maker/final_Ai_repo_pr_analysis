@@ -60,9 +60,9 @@ Start the mock sandbox + AI engine in a second terminal:
 ```bash
 python tools/mock_services.py
 ```
-This serves fake versions of `POST /execute` (port 9000) and
-`POST /analyze` (port 9100) that return realistic Stage 3 / Stage 5
-payloads, matching the schema doc's own examples.
+This serves fake versions of `POST /run` (port 9000) and
+`POST /analyze` (port 9100). The mock sandbox accepts `{code, packages}`
+and returns the same response shape as the real code-runner service.
 
 In a third terminal, fire a real, correctly-signed webhook:
 ```bash
@@ -75,8 +75,8 @@ curl http://localhost:8000/api/v1/jobs
 curl http://localhost:8000/api/v1/jobs/<job_id>/review
 ```
 
-You should see `status: "completed"`, an execution_result with 2 passed
-tests / 1 failed, and an ai_review with the SQL-injection issue from the
+You should see `status: "completed"`, an execution_result with sandbox
+stdout/stderr, and an ai_review with the SQL-injection issue from the
 schema doc's own example.
 
 **Watch it live** — connect a WebSocket client to `ws://localhost:8000/api/v1/ws`
@@ -87,9 +87,11 @@ ai_review_completed → github_posted`.
 ## 5. Connecting the real pieces
 
 - **Sandbox teammate**: point `SANDBOX_BASE_URL` in `.env` at their
-  service. It must expose `POST /execute` accepting the Stage 2 shape
-  and returning the Stage 3 shape — see `app/schemas/review.py` for the
-  exact Pydantic models, which are the source of truth.
+  service. It exposes `POST /run` with `{code, packages}` — see
+  `SandboxCodeRequest` in `app/schemas/review.py`. The backend fetches
+  the PR diff from GitHub, extracts Python source, and translates the
+  sandbox response into `SandboxExecutionResult` for the rest of the
+  pipeline.
 - **AI engine teammate**: same for `AI_ENGINE_BASE_URL` and `POST /analyze`
   — Stage 4 request / Stage 5 response, also in `app/schemas/review.py`.
 - **GitHub**: set `GITHUB_WEBHOOK_SECRET` to the secret you configure on

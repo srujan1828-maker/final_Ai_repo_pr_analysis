@@ -7,15 +7,21 @@ from app.schemas.repository import RepoContext
 
 
 # ---------------------------------------------------------------------------
-# Stage 2: Backend -> Sandbox (execution request)
+# Stage 2: Backend -> Sandbox (code-runner request)
 # ---------------------------------------------------------------------------
-class SandboxExecutionRequest(BaseModel):
-    job_id: uuid.UUID
-    repo_url: str
-    commit_sha: str
-    language: str
-    test_command: str
-    timeout_seconds: int = 120
+class SandboxCodeRequest(BaseModel):
+    """Payload for the sandbox's POST /run endpoint."""
+
+    code: str
+    packages: list[str] = Field(default_factory=list)
+
+
+class SandboxTestRequest(BaseModel):
+    """Payload for the sandbox's POST /test endpoint."""
+
+    code: str
+    tests: str
+    packages: list[str] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
