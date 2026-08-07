@@ -1,0 +1,33 @@
+{
+  "job_id": "failing-tests-002",
+  "diff": "diff --git a/users/models.py b/users/models.py\nindex 3a4b5c6..7d8e9f0 100644\n--- a/users/models.py\n+++ b/users/models.py\n@@ -15,6 +15,7 @@ class UserProfile(models.Model):\n     bio = models.TextField(blank=True)\n     avatar_url = models.URLField(blank=True)\n     created_at = models.DateTimeField(auto_now_add=True)\n+    phone_number = models.CharField(max_length=20)\n \n     def __str__(self):\n         return f\"{self.user.username}'s profile\"\n@@ -25,3 +26,15 @@ class UserProfile(models.Model):\n \n     def get_display_name(self):\n         return self.user.get_full_name() or self.user.username\n+\n+    def format_phone(self):\n+        \"\"\"Format phone number for display.\"\"\"\n+        digits = ''.join(filter(str.isdigit, self.phone_number))\n+        if len(digits) == 10:\n+            return f'({digits[:3]}) {digits[3:6]}-{digits[6:]}'\n+        return self.phone_number\n+\n+    def get_profile_completion(self):\n+        fields = [self.bio, self.avatar_url, self.phone_number]\n+        filled = sum(1 for f in fields if f)\n+        return int((filled / len(fields)) * 100)\ndiff --git a/users/views.py b/users/views.py\nindex 1a2b3c4..5d6e7f8 100644\n--- a/users/views.py\n+++ b/users/views.py\n@@ -22,6 +22,7 @@ class UserProfileView(LoginRequiredMixin, UpdateView):\n     def get_object(self):\n         return self.request.user.profile\n \n+    # BUG: missing get_form override to include phone_number\n     def form_valid(self, form):\n         response = super().form_valid(form)\n         messages.success(self.request, 'Profile updated successfully')\ndiff --git a/users/tests/test_profile.py b/users/tests/test_profile.py\nindex aaa1111..bbb2222 100644\n--- a/users/tests/test_profile.py\n+++ b/users/tests/test_profile.py\n@@ -30,3 +30,15 @@ class UserProfileTest(TestCase):\n     def test_display_name_fallback(self):\n         self.user.first_name = ''\n         assert self.profile.get_display_name() == 'testuser'\n+\n+    def test_format_phone_us(self):\n+        self.profile.phone_number = '5551234567'\n+        assert self.profile.format_phone() == '(555) 123-4567'\n+\n+    def test_profile_completion(self):\n+        self.profile.bio = 'Hello'\n+        self.profile.phone_number = '5551234567'\n+        assert self.profile.get_profile_completion() == 66\n+\n+    def test_phone_required_on_create(self):\n+        with self.assertRaises(Exception):\n+            UserProfile.objects.create(user=self.user)\n",
+  "execution_result": {
+    "status": "test_failures",
+    "exit_code": 1,
+    "stdout": "Found 6 tests...\n",
+    "stderr": "django.db.utils.IntegrityError: NOT NULL constraint failed: users_userprofile.phone_number\n\nERROR: test_display_name_fallback (users.tests.test_profile.UserProfileTest)\ndjango.db.utils.IntegrityError: NOT NULL constraint failed: users_userprofile.phone_number\n",
+    "files_changed": ["users/models.py", "users/views.py", "users/tests/test_profile.py"],
+    "test_results": {
+      "passed": 3,
+      "failed": 3,
+      "failures": [
+        {
+          "test_name": "test_display_name_fallback",
+          "message": "django.db.utils.IntegrityError: NOT NULL constraint failed: users_userprofile.phone_number"
+        },
+        {
+          "test_name": "test_format_phone_us",
+          "message": "django.db.utils.IntegrityError: NOT NULL constraint failed: users_userprofile.phone_number"
+        },
+        {
+          "test_name": "test_profile_completion",
+          "message": "django.db.utils.IntegrityError: NOT NULL constraint failed: users_userprofile.phone_number"
+        }
+      ]
+    }
+  },
+  "repo_context": {
+    "language": "python",
+    "framework": "django"
+  }
+}
