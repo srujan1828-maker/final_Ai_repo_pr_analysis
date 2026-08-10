@@ -3,7 +3,11 @@ import { Job, Review } from '@/types';
 import { mockJobs, mockReviews } from '@/lib/mockData';
 
 const DEFAULT_API_URL = 'https://ai-pr-analysis-clone.onrender.com/api/v1';
-const API_URLS = ['/api', DEFAULT_API_URL];
+
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  DEFAULT_API_URL
+).replace(/\/$/, '');
 
 function isJob(value: unknown): value is Job {
   if (!value || typeof value !== 'object') return false;
@@ -19,17 +23,13 @@ function isJob(value: unknown): value is Job {
   );
 }
 
-function isReview(value: unknown): value is Review {
-  if (!value || typeof value !== 'object') return false;
-  const review = value as Partial<Review>;
-  return (
-    typeof review.job_id === 'string' &&
-    typeof review.merge_readiness_score === 'number' &&
-    typeof review.summary === 'string' &&
-    Array.isArray(review.issues) &&
-    typeof review.recommendation === 'string'
-  );
+function jobPath(id: string): string {
+  return encodeURIComponent(id);
 }
+
+export async function fetchJobs(): Promise<Job[]> {
+  const res = await fetch(`${API_URL}/jobs`);
+  if (!res.ok) throw new Error(`Failed to fetch jobs: ${res.status}`);
 
 function jobPath(id: string): string {
   return encodeURIComponent(id);
@@ -58,8 +58,9 @@ async function fetchJsonFromAnyApi(path: string): Promise<unknown> {
   throw lastError instanceof Error ? lastError : new Error('Failed to fetch');
 }
 
-function normalizeReview(jobId: string, data: unknown): Review | null {
-  if (isReview(data)) return data;
+export async function fetchJob(id: string): Promise<Job> {
+  const res = await fetch(`${API_URL}/jobs/${jobPath(id)}`);
+  if (!res.ok) throw new Error(`Failed to fetch job: ${res.status}`);
 
   if (!data || typeof data !== 'object') return null;
   const nested = data as { ai_review?: unknown };
@@ -106,15 +107,7 @@ export async function fetchJob(id: string): Promise<Job> {
 }
 
 export async function fetchReview(id: string): Promise<Review> {
-  try {
-    const data = await fetchJsonFromAnyApi(`/jobs/${jobPath(id)}/review`);
-    const review = normalizeReview(id, data);
-    if (review) return review;
-    throw new Error('Invalid review response');
-  } catch (error) {
-    console.warn('[API] Falling back to bundled review:', error);
-    const fallback = mockReviews[id];
-    if (fallback) return fallback;
-    throw error;
-  }
+  const res = await fetch(`${API_URL}/jobs/${jobPath(id)}/review`);
+  if (!res.ok) throw new Error(`Failed to fetch review: ${res.status}`);
+  return res.json();
 }
