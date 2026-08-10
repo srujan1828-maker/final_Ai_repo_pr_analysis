@@ -6,5 +6,5 @@ export async function GET(
 ) {
   const { id } = await params;
   const fallback = reviewFallback(id);
-  return fetchBackendJson(`/jobs/${id}/review`, fallback.body, fallback.status);
+  return fetchBackendJson(`/jobs/${encodeURIComponent(id)}/review`, fallback.body, fallback.status);
 }
