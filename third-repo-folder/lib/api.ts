@@ -3,11 +3,8 @@ import { Job, Review } from '@/types';
 import { mockJobs, mockReviews } from '@/lib/mockData';
 
 const DEFAULT_API_URL = 'https://ai-pr-analysis-clone.onrender.com/api/v1';
-
-const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL ||
-  DEFAULT_API_URL
-).replace(/\/$/, '');
+// Prefer the same-origin Next.js proxy to avoid browser CORS errors, then fall back to the deployed API.
+const API_URLS = ['/api', DEFAULT_API_URL];
 
 function isJob(value: unknown): value is Job {
   if (!value || typeof value !== 'object') return false;
@@ -23,13 +20,17 @@ function isJob(value: unknown): value is Job {
   );
 }
 
-function jobPath(id: string): string {
-  return encodeURIComponent(id);
+function isReview(value: unknown): value is Review {
+  if (!value || typeof value !== 'object') return false;
+  const review = value as Partial<Review>;
+  return (
+    typeof review.job_id === 'string' &&
+    typeof review.merge_readiness_score === 'number' &&
+    typeof review.summary === 'string' &&
+    Array.isArray(review.issues) &&
+    typeof review.recommendation === 'string'
+  );
 }
-
-export async function fetchJobs(): Promise<Job[]> {
-  const res = await fetch(`${API_URL}/jobs`);
-  if (!res.ok) throw new Error(`Failed to fetch jobs: ${res.status}`);
 
 function jobPath(id: string): string {
   return encodeURIComponent(id);
@@ -58,9 +59,8 @@ async function fetchJsonFromAnyApi(path: string): Promise<unknown> {
   throw lastError instanceof Error ? lastError : new Error('Failed to fetch');
 }
 
-export async function fetchJob(id: string): Promise<Job> {
-  const res = await fetch(`${API_URL}/jobs/${jobPath(id)}`);
-  if (!res.ok) throw new Error(`Failed to fetch job: ${res.status}`);
+function normalizeReview(jobId: string, data: unknown): Review | null {
+  if (isReview(data)) return data;
 
   if (!data || typeof data !== 'object') return null;
   const nested = data as { ai_review?: unknown };
@@ -78,7 +78,7 @@ export async function fetchJob(id: string): Promise<Job> {
   return isReview(review) ? review : null;
 }
 
-export async function fetchJobs(): Promise<Job[]> {
+async function fetchJobs(): Promise<Job[]> {
   try {
     const data = await fetchJsonFromAnyApi('/jobs');
     if (!Array.isArray(data)) {
@@ -93,7 +93,7 @@ export async function fetchJobs(): Promise<Job[]> {
   }
 }
 
-export async function fetchJob(id: string): Promise<Job> {
+async function fetchJob(id: string): Promise<Job> {
   try {
     const data = await fetchJsonFromAnyApi(`/jobs/${jobPath(id)}`);
     if (isJob(data)) return data;
@@ -106,8 +106,18 @@ export async function fetchJob(id: string): Promise<Job> {
   }
 }
 
-export async function fetchReview(id: string): Promise<Review> {
-  const res = await fetch(`${API_URL}/jobs/${jobPath(id)}/review`);
-  if (!res.ok) throw new Error(`Failed to fetch review: ${res.status}`);
-  return res.json();
+async function fetchReview(id: string): Promise<Review> {
+  try {
+    const data = await fetchJsonFromAnyApi(`/jobs/${jobPath(id)}/review`);
+    const review = normalizeReview(id, data);
+    if (review) return review;
+    throw new Error('Invalid review response');
+  } catch (error) {
+    console.warn('[API] Falling back to bundled review:', error);
+    const fallback = mockReviews[id];
+    if (fallback) return fallback;
+    throw error;
+  }
 }
+
+export { fetchJobs, fetchJob, fetchReview };
