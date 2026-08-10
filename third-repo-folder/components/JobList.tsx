@@ -72,13 +72,19 @@ function EmptyState() {
   );
 }
 
-export default function JobList() {
+interface JobListProps {
+  initialJobs?: Job[];
+}
+
+export default function JobList({ initialJobs }: JobListProps) {
   const router = useRouter();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState<Job[]>(initialJobs || []);
+  const [loading, setLoading] = useState(!initialJobs);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialJobs) return;
+
     fetchJobs()
       .then((data) => {
         setJobs(data);
@@ -88,7 +94,7 @@ export default function JobList() {
         setError(err.message);
         setLoading(false);
       });
-  }, []);
+  }, [initialJobs]);
 
   const handleWSEvent = useCallback((event: WSEvent) => {
     switch (event.event) {
@@ -172,7 +178,10 @@ export default function JobList() {
               jobs.map((job) => (
                 <tr
                   key={job.job_id}
-                  onClick={() => router.push(`/jobs/${encodeURIComponent(job.job_id)}`)}
+                  onClick={() => {
+                    sessionStorage.setItem(`selected-job-${job.job_id}`, JSON.stringify(job));
+                    router.push(`/jobs/${encodeURIComponent(job.job_id)}`);
+                  }}
                   className="border-b border-[var(--color-border)] cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors duration-150 group"
                 >
                   <td className="p-4">

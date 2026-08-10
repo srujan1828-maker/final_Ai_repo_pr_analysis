@@ -40,6 +40,20 @@ function endpoint(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/$/, '')}${path}`;
 }
 
+function selectedJobFallback(id: string): Job | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const stored = sessionStorage.getItem(`selected-job-${id}`);
+    if (!stored) return null;
+
+    const parsed: unknown = JSON.parse(stored);
+    return isJob(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchJsonFromAnyApi(path: string): Promise<unknown> {
   let lastError: unknown;
 
@@ -100,7 +114,7 @@ async function fetchJob(id: string): Promise<Job> {
     throw new Error('Invalid job response');
   } catch (error) {
     console.warn('[API] Falling back to bundled job:', error);
-    const fallback = mockJobs.find((job) => job.job_id === id);
+    const fallback = selectedJobFallback(id) || mockJobs.find((job) => job.job_id === id);
     if (fallback) return fallback;
     throw error;
   }

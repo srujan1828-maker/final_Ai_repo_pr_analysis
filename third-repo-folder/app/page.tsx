@@ -1,10 +1,13 @@
 import { Bot, Zap } from 'lucide-react';
 import JobList from '@/components/JobList';
+import { fetchInitialJobs } from '@/lib/serverJobs';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default function HomePage() {
+export default async function HomePage() {
+  const initialJobs = await fetchInitialJobs();
+
   return (
     <main className="min-h-screen">
       {/* Top navigation bar */}
@@ -29,7 +32,7 @@ export default function HomePage() {
           <h1 className="text-2xl font-bold text-[var(--color-foreground)] mb-1">PR Reviews</h1>
           <p className="text-sm text-[var(--color-foreground-muted)]">Monitor AI-powered code reviews across your repositories</p>
         </div>
-        <JobList />
+        <JobList initialJobs={initialJobs} />
       </div>
     </main>
   );
