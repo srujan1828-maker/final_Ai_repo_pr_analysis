@@ -1,7 +1,12 @@
 // lib/api.ts
 import { Job, Review } from '@/types';
 
-const API_URL = '/api';
+const DEFAULT_API_URL = 'https://ai-pr-analysis-clone.onrender.com/api/v1';
+
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  DEFAULT_API_URL
+).replace(/\/$/, '');
 
 function isJob(value: unknown): value is Job {
   if (!value || typeof value !== 'object') return false;
