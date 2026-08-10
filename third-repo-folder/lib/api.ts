@@ -1,7 +1,12 @@
 // lib/api.ts
 import { Job, Review } from '@/types';
 
-const API_URL = '/api';
+const DEFAULT_API_URL = 'https://ai-pr-analysis-clone.onrender.com/api/v1';
+
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  DEFAULT_API_URL
+).replace(/\/$/, '');
 
 function isJob(value: unknown): value is Job {
   if (!value || typeof value !== 'object') return false;
@@ -17,6 +22,10 @@ function isJob(value: unknown): value is Job {
   );
 }
 
+function jobPath(id: string): string {
+  return encodeURIComponent(id);
+}
+
 export async function fetchJobs(): Promise<Job[]> {
   const res = await fetch(`${API_URL}/jobs`);
   if (!res.ok) throw new Error(`Failed to fetch jobs: ${res.status}`);
@@ -30,7 +39,7 @@ export async function fetchJobs(): Promise<Job[]> {
 }
 
 export async function fetchJob(id: string): Promise<Job> {
-  const res = await fetch(`${API_URL}/jobs/${id}`);
+  const res = await fetch(`${API_URL}/jobs/${jobPath(id)}`);
   if (!res.ok) throw new Error(`Failed to fetch job: ${res.status}`);
 
   const data: unknown = await res.json();
@@ -42,7 +51,7 @@ export async function fetchJob(id: string): Promise<Job> {
 }
 
 export async function fetchReview(id: string): Promise<Review> {
-  const res = await fetch(`${API_URL}/jobs/${id}/review`);
+  const res = await fetch(`${API_URL}/jobs/${jobPath(id)}/review`);
   if (!res.ok) throw new Error(`Failed to fetch review: ${res.status}`);
   return res.json();
 }
