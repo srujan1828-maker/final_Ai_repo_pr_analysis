@@ -172,7 +172,7 @@ export default function JobList() {
               jobs.map((job) => (
                 <tr
                   key={job.job_id}
-                  onClick={() => router.push(`/jobs/${job.job_id}`)}
+                  onClick={() => router.push(`/jobs/${encodeURIComponent(job.job_id)}`)}
                   className="border-b border-[var(--color-border)] cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors duration-150 group"
                 >
                   <td className="p-4">
