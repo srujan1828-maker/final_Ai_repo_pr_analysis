@@ -44,6 +44,7 @@ class Settings(BaseSettings):
         default="http://localhost:3000,http://localhost:5173",
         validation_alias="CORS_ORIGINS",
     )
+    cors_origin_regex: str = Field(default="", validation_alias="CORS_ORIGIN_REGEX")
 
     @field_validator("database_url", mode="before")
     @classmethod

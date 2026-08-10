@@ -1,9 +1,11 @@
 import { mockJobs, mockReviews } from '@/lib/mockData';
 
+const DEFAULT_BACKEND_API_URL = 'https://ai-pr-analysis-clone.onrender.com/api/v1';
+
 const BACKEND_API_URL = (
   process.env.BACKEND_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  ''
+  DEFAULT_BACKEND_API_URL
 ).replace(/\/$/, '');
 
 function backendUrl(path: string): string | null {

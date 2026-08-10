@@ -39,7 +39,7 @@ export function useWebSocket({ onEvent, enabled = true }: UseWebSocketOptions) {
     };
 
     const connect = () => {
-      const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+      const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://ai-pr-analysis-clone.onrender.com/api/v1/ws';
 
       try {
         const ws = new WebSocket(WS_URL);
