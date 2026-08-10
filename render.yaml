@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: ai-review-backend
+    runtime: python
+    plan: free
+    rootDir: second-repo-folder
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: CREATE_DB_TABLES
+        value: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-review-db
+          property: connectionString
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: SANDBOX_BASE_URL
+        value: https://overflowing-hope-production-a05a.up.railway.app
+      - key: AI_ENGINE_BASE_URL
+        value: https://ai-agent-github.onrender.com
+      - key: CORS_ORIGINS
+        value: '["https://git-hub-agent-front-end.vercel.app"]'
+
+
+databases:
+  - name: ai-review-db
+    plan: free

@@ -1,0 +1,15 @@
+APP_NAME=ai-review-backend
+ENVIRONMENT=development
+DEBUG=true
+CREATE_DB_TABLES=false
+
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/ai_review
+
+GITHUB_WEBHOOK_SECRET=change-me
+GITHUB_TOKEN=
+
+SANDBOX_BASE_URL=https://overflowing-hope-production-a05a.up.railway.app
+AI_ENGINE_BASE_URL=https://ai-agent-github.onrender.com
+
+# Comma-separated is easiest on Render. JSON list also works.
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173,https://git-hub-agent-front-end.vercel.app

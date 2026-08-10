@@ -1,0 +1,20 @@
+{
+  "job_id": "clean-pr-001",
+  "diff": "diff --git a/app/utils/string_helpers.py b/app/utils/string_helpers.py\nnew file mode 100644\nindex 0000000..a1b2c3d\n--- /dev/null\n+++ b/app/utils/string_helpers.py\n@@ -0,0 +1,28 @@\n+\"\"\"String utility helpers.\"\"\"\n+import re\n+from typing import Optional\n+\n+\n+def slugify(text: str) -> str:\n+    \"\"\"Convert text to URL-safe slug.\"\"\"\n+    text = text.lower().strip()\n+    text = re.sub(r'[^\\w\\s-]', '', text)\n+    return re.sub(r'[-\\s]+', '-', text)\n+\n+\n+def truncate(text: str, max_length: int = 100, suffix: str = '...') -> str:\n+    \"\"\"Truncate text to max_length, adding suffix if truncated.\"\"\"\n+    if len(text) <= max_length:\n+        return text\n+    return text[:max_length - len(suffix)] + suffix\n+\n+\n+def extract_domain(url: str) -> Optional[str]:\n+    \"\"\"Extract domain from URL string.\"\"\"\n+    match = re.match(r'https?://([^/]+)', url)\n+    return match.group(1) if match else None\n+\n+\n+def mask_email(email: str) -> str:\n+    \"\"\"Mask email address for display: john@example.com -> j***@example.com\"\"\"\n+    local, domain = email.split('@')\n+    return f\"{local[0]}***@{domain}\"\ndiff --git a/tests/test_string_helpers.py b/tests/test_string_helpers.py\nnew file mode 100644\n--- /dev/null\n+++ b/tests/test_string_helpers.py\n@@ -0,0 +1,22 @@\n+import pytest\n+from app.utils.string_helpers import slugify, truncate, extract_domain, mask_email\n+\n+\n+def test_slugify():\n+    assert slugify('Hello World!') == 'hello-world'\n+\n+\n+def test_truncate():\n+    assert truncate('short') == 'short'\n+    assert len(truncate('a' * 200)) <= 100\n+\n+\n+def test_extract_domain():\n+    assert extract_domain('https://example.com/path') == 'example.com'\n+    assert extract_domain('invalid') is None\n+\n+\n+def test_mask_email():\n+    assert mask_email('john@example.com') == 'j***@example.com'\n",
+  "execution_result": {
+    "status": "success",
+    "exit_code": 0,
+    "stdout": "============================= 4 passed in 0.12s ==============================\n",
+    "stderr": "",
+    "files_changed": ["app/utils/string_helpers.py", "tests/test_string_helpers.py"],
+    "test_results": {
+      "passed": 4,
+      "failed": 0,
+      "failures": []
+    }
+  },
+  "repo_context": {
+    "language": "python",
+    "framework": "fastapi"
+  }
+}
