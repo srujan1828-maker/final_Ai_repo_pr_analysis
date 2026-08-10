@@ -3,6 +3,7 @@ import { Job, Review } from '@/types';
 import { mockJobs, mockReviews } from '@/lib/mockData';
 
 const DEFAULT_API_URL = 'https://ai-pr-analysis-clone.onrender.com/api/v1';
+// Prefer the same-origin Next.js proxy to avoid browser CORS errors, then fall back to the deployed API.
 const API_URLS = ['/api', DEFAULT_API_URL];
 
 function isJob(value: unknown): value is Job {
