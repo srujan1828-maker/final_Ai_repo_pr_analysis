@@ -29,7 +29,9 @@ services:
       - key: AI_ENGINE_BASE_URL
         value: https://ai-agent-github.onrender.com
       - key: CORS_ORIGINS
-        value: '["https://git-hub-agent-front-end.vercel.app"]'
+        value: '["https://git-hub-agent-front-end.vercel.app","https://final-ai-repo-pr-analysis.vercel.app"]'
+      - key: CORS_ORIGIN_REGEX
+        value: '^https://final-ai-repo-pr-analysis(?:-[a-z0-9]+)?(?:-[a-z0-9-]+)?\\.vercel\\.app$'
 
 
 databases:
